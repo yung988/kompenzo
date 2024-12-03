@@ -3,10 +3,9 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from '@/components/hooks/use-toast'
 import { Camera, Upload } from 'lucide-react'
-
+import Image from 'next/image'
 export default function ScanTicketPage() {
   const [scannedImage, setScannedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -44,7 +43,7 @@ export default function ScanTicketPage() {
         <div className="flex flex-col items-center">
           <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
             {scannedImage ? (
-              <img src={scannedImage} alt="Naskenovaná jízdenka" className="max-w-full max-h-full object-contain" />
+              <Image src={scannedImage} alt="Naskenovaná jízdenka" className="max-w-full max-h-full object-contain" />
             ) : (
               <Camera className="h-24 w-24 text-gray-400" />
             )}
