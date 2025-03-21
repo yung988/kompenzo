@@ -1,36 +1,142 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kompenzo
 
-## Getting Started
+Aplikace pro správu jízdenek a automatické sledování zpoždění pro účely odškodnění.
 
-First, run the development server:
+## Funkce
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Správa jízdenek** - Přidání, úprava a odstranění jízdenek
+- **Sledování zpoždění** - Automatická kontrola zpoždění pro vaše jízdenky
+- **Žádosti o odškodnění** - Vytváření a správa žádostí o odškodnění za zpožděné spoje
+- **Napojení na ČD API** - Vyhledávání spojení a automatické sledování zpoždění vlaků
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Napojení na API Českých drah
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Aplikace je integrována s [API Českých drah](https://ticket-api.cd.cz/), které umožňuje:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Vyhledávání spojení**
+   - Vyhledání stanice podle názvu
+   - Vyhledání spojení mezi stanicemi
+   - Zjištění ceny, času odjezdu a příjezdu
 
-## Learn More
+2. **Automatické sledování zpoždění**
+   - Periodická kontrola zpoždění vašich aktivních jízdenek
+   - Automatické vytvoření žádosti o odškodnění při zpoždění větším než 60 minut
 
-To learn more about Next.js, take a look at the following resources:
+## Jak to funguje
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Přidání jízdenky**
+   - Můžete ručně zadat informace o jízdence
+   - Nebo využít vyhledávání spojení, které automaticky předvyplní údaje
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Automatické sledování**
+   - Po přihlášení aplikace periodicky kontroluje zpoždění vašich aktivních jízdenek
+   - Při detekci zpoždění nad limit pro odškodnění (60+ minut) vytvoří automaticky žádost
 
-## Deploy on Vercel
+3. **Žádosti o odškodnění**
+   - Zobrazení všech vytvořených žádostí
+   - Sledování stavu žádostí
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Technologie
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 14
+- React
+- TypeScript
+- TailwindCSS
+- Shadcn/UI
+- Supabase
+
+## Začínáme
+
+### Prerekvizity
+
+- Node.js 18+ 
+- pnpm
+
+### Instalace
+
+1. Naklonujte repozitář
+   ```bash
+   git clone https://github.com/yung988/kompenzo.git
+   cd kompenzo
+   ```
+
+2. Nainstalujte závislosti
+   ```bash
+   pnpm install
+   ```
+
+3. Vytvořte Supabase projekt
+
+   - Zaregistrujte se na [Supabase](https://supabase.com/)
+   - Vytvořte nový projekt
+   - Vytvořte následující tabulky v Supabase:
+     - tickets
+     - claims
+   - Povolte autentizaci přes email/heslo
+
+4. Vytvořte soubor `.env.local` a přidejte své Supabase údaje:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project-url.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+5. Spusťte vývojový server
+   ```bash
+   pnpm dev
+   ```
+
+6. Otevřete [http://localhost:3000](http://localhost:3000) ve svém prohlížeči
+
+## Struktura databáze Supabase
+
+### Tabulka `tickets`
+
+| Sloupec | Typ | Popis |
+|---------|-----|-------|
+| id | uuid | Primární klíč |
+| userId | uuid | ID uživatele |
+| type | varchar | 'digital' nebo 'scanned' |
+| transportType | varchar | 'train' nebo 'bus' |
+| carrier | varchar | 'cd', 'regiojet', 'flixbus', 'other' |
+| routeNumber | varchar | Číslo spoje |
+| departureStation | varchar | Výchozí stanice |
+| arrivalStation | varchar | Cílová stanice |
+| departureDate | varchar | Datum odjezdu |
+| departureTime | varchar | Čas odjezdu |
+| arrivalDate | varchar | Datum příjezdu |
+| arrivalTime | varchar | Čas příjezdu |
+| status | varchar | 'active', 'used', 'expired' |
+| delayMinutes | integer | Zpoždění v minutách |
+| price | integer | Cena jízdenky v Kč |
+| imageUrl | varchar | URL naskenované jízdenky |
+| created | timestamp | Datum vytvoření záznamu |
+
+### Tabulka `claims`
+
+| Sloupec | Typ | Popis |
+|---------|-----|-------|
+| id | uuid | Primární klíč |
+| ticketId | uuid | ID jízdenky |
+| userId | uuid | ID uživatele |
+| status | varchar | 'pending', 'approved', 'rejected', 'paid' |
+| amount | integer | Částka refundace v Kč |
+| submissionDate | timestamp | Datum podání žádosti |
+| resolutionDate | timestamp | Datum vyřízení žádosti |
+| carrier | varchar | 'cd', 'regiojet', 'flixbus', 'other' |
+| bankAccount | varchar | Bankovní účet pro výplatu |
+| notes | text | Poznámky k žádosti |
+
+## Nasazení na Vercel
+
+1. Zaregistrujte se na [Vercel](https://vercel.com/)
+2. Nasaďte aplikaci kliknutím na tlačítko níže:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyung988%2Fkompenzo)
+
+3. Nastavte proměnné prostředí:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+## Licence
+
+Tento projekt je licencován pod MIT licencí - viz soubor LICENSE pro detaily.

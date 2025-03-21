@@ -1,116 +1,218 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AlertCircle, CheckCircle2 } from 'lucide-react'
-
-interface Ticket {
-  id: string
-  type: 'digital' | 'scanned'
-  transportType: 'train' | 'bus'
-  routeNumber: string
-  departureDate: string
-  departureTime: string
-  arrivalDate: string
-  arrivalTime: string
-  status: 'active' | 'used' | 'expired'
-  delayMinutes: number
-}
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Loader2, Check, X, Clock, AlertCircle } from 'lucide-react'
+import { ticketService } from '@/lib/api-supabase'
+import { calculateRefund } from '@/lib/api-supabase'
+import { Ticket } from '@/lib/types'
 
 export default function TicketsPage() {
+  const { isAuthenticated, currentUser } = useAuth()
+  const router = useRouter()
   const [tickets, setTickets] = useState<Ticket[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const mockTickets: Ticket[] = [
-      {
-        id: '1',
-        type: 'digital',
-        transportType: 'train',
-        routeNumber: 'R123',
-        departureDate: '2023-06-10',
-        departureTime: '14:30',
-        arrivalDate: '2023-06-10',
-        arrivalTime: '16:45',
-        status: 'active',
-        delayMinutes: 0
-      },
-      {
-        id: '2',
-        type: 'scanned',
-        transportType: 'bus',
-        routeNumber: 'B456',
-        departureDate: '2023-06-15',
-        departureTime: '09:00',
-        arrivalDate: '2023-06-15',
-        arrivalTime: '11:30',
-        status: 'used',
-        delayMinutes: 75
-      }
-    ]
-    setTickets(mockTickets)
-  }, [])
+    if (!isAuthenticated) {
+      router.push('/login')
+      return
+    }
 
-  const renderTicket = (ticket: Ticket) => (
-    <Card key={ticket.id} className="mb-4 glass-effect overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h3 className="text-xl font-semibold text-blue-800">
-              {ticket.transportType === 'train' ? 'Vlak' : 'Autobus'} {ticket.routeNumber}
-            </h3>
-            <p className="text-gray-600">{ticket.departureDate}</p>
-          </div>
-          {ticket.status === 'active' ? (
-            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Aktivní</span>
-          ) : ticket.status === 'used' ? (
-            <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">Použitá</span>
-          ) : (
-            <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-sm">Expirovaná</span>
-          )}
+    const loadTickets = async () => {
+      setIsLoading(true)
+      try {
+        if (currentUser?.id) {
+          const userTickets = await ticketService.getByUser(currentUser.id)
+          setTickets(userTickets || [])
+        }
+      } catch (err) {
+        console.error('Chyba při načítání jízdenek:', err)
+        setError('Nepodařilo se načíst jízdenky. Zkuste to prosím znovu.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadTickets()
+  }, [isAuthenticated, currentUser, router])
+
+  const handleAddTicket = () => {
+    router.push('/tickets/add')
+  }
+  
+  const handleClaimRefund = (ticketId: string) => {
+    router.push(`/submit-claim?ticketId=${ticketId}`)
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-500">Aktivní</Badge>
+      case 'used':
+        return <Badge className="bg-gray-500">Použitá</Badge>
+      case 'expired':
+        return <Badge className="bg-red-500">Propadlá</Badge>
+      default:
+        return <Badge>Neznámý</Badge>
+    }
+  }
+
+  const getCarrierName = (carrier: string) => {
+    switch (carrier) {
+      case 'cd':
+        return 'České dráhy'
+      case 'cd_eticket':
+        return 'České dráhy (eTiket)'
+      case 'regiojet':
+        return 'RegioJet'
+      case 'flixbus':
+        return 'FlixBus'
+      default:
+        return carrier
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Načítání jízdenek...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center">
+          <AlertCircle className="mr-2" />
+          <span>{error}</span>
         </div>
-        <div className="flex justify-between text-sm text-gray-600 mb-4">
-          <div>
-            <p>Odjezd: {ticket.departureTime}</p>
-            <p>Příjezd: {ticket.arrivalTime}</p>
-          </div>
-        </div>
-        {ticket.delayMinutes > 0 && (
-          <div className="flex items-center text-red-500 mb-4">
-            <AlertCircle className="h-5 w-5 mr-2" />
-            <p>Zpoždění: {ticket.delayMinutes} minut</p>
-          </div>
-        )}
-        {ticket.delayMinutes >= 60 && ticket.status === 'used' && (
-          <Button className="w-full">
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-            Požádat o refundaci
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  )
+        <Button onClick={() => window.location.reload()}>Zkusit znovu</Button>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-800">Moje jízdenky</h1>
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="all">Všechny</TabsTrigger>
-          <TabsTrigger value="digital">Digitální</TabsTrigger>
-          <TabsTrigger value="scanned">Naskenované</TabsTrigger>
-        </TabsList>
-        <TabsContent value="all">
-          {tickets.map(renderTicket)}
-        </TabsContent>
-        <TabsContent value="digital">
-          {tickets.filter(t => t.type === 'digital').map(renderTicket)}
-        </TabsContent>
-        <TabsContent value="scanned">
-          {tickets.filter(t => t.type === 'scanned').map(renderTicket)}
-        </TabsContent>
-      </Tabs>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-800">Moje jízdenky</h1>
+        <Button onClick={handleAddTicket}>Přidat jízdenku</Button>
+      </div>
+
+      {tickets.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <Clock className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Zatím nemáte žádné jízdenky</h2>
+          <p className="text-gray-600 mb-4">
+            Přidejte svou první jízdenku a získejte možnost automatického odškodnění
+          </p>
+          <Button onClick={handleAddTicket}>Přidat jízdenku</Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {tickets.map((ticket) => {
+            const refundAmount = calculateRefund(ticket)
+            const canClaimRefund = ticket.delayMinutes >= 60 && refundAmount > 0
+            
+            return (
+              <Card key={ticket.id} className="overflow-hidden">
+                <CardHeader className="bg-blue-50 pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">
+                        {ticket.transportType === 'train' ? 'Vlak' : 'Autobus'} {ticket.routeNumber}
+                      </CardTitle>
+                      <p className="text-sm text-gray-600">{getCarrierName(ticket.carrier)}</p>
+                    </div>
+                    {getStatusBadge(ticket.status)}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500">Odkud</p>
+                        <p className="font-medium">{ticket.departureStation}</p>
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className="text-xs text-gray-500">Kam</p>
+                        <p className="font-medium">{ticket.arrivalStation}</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <div>
+                        <p className="text-xs text-gray-500">Datum</p>
+                        <p className="font-medium">{ticket.departureDate}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Zpoždění</p>
+                        <p className={`font-medium ${ticket.delayMinutes >= 60 ? 'text-red-600' : ''}`}>
+                          {ticket.delayMinutes} min
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Cena</p>
+                        <p className="font-medium">{ticket.price} Kč</p>
+                      </div>
+                    </div>
+
+                    {ticket.delayMinutes > 0 && (
+                      <div className={`mt-2 p-2 rounded ${canClaimRefund ? 'bg-green-50' : 'bg-gray-50'}`}>
+                        <div className="flex items-center">
+                          {canClaimRefund ? (
+                            <Check className="h-4 w-4 text-green-600 mr-2" />
+                          ) : (
+                            <X className="h-4 w-4 text-red-600 mr-2" />
+                          )}
+                          <div>
+                            <p className="text-sm font-medium">
+                              {canClaimRefund 
+                                ? `Nárok na odškodnění: ${refundAmount} Kč` 
+                                : 'Nesplňuje podmínky pro odškodnění'}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {canClaimRefund 
+                                ? `${Math.round((refundAmount / ticket.price) * 100)}% z ceny jízdenky` 
+                                : ticket.delayMinutes < 60 
+                                  ? 'Zpoždění musí být alespoň 60 minut' 
+                                  : 'Nesplňuje podmínky pro minimální cenu'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex gap-2 bg-gray-50 border-t">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => router.push(`/tickets/${ticket.id}`)}
+                    className="flex-1"
+                  >
+                    Detail
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleClaimRefund(ticket.id)}
+                    disabled={!canClaimRefund}
+                    className={`flex-1 ${canClaimRefund ? '' : 'opacity-50 cursor-not-allowed'}`}
+                  >
+                    Žádat o odškodnění
+                  </Button>
+                </CardFooter>
+              </Card>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
