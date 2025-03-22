@@ -12,19 +12,26 @@ export const calculateRefund = (ticket: Ticket): number => {
   }
   
   const rule = REFUND_RULES.find(
-    r => r.carrier === carrierToCheck && 
-         ticket.delayMinutes >= r.minDelay && 
-         (!r.maxDelay || ticket.delayMinutes <= r.maxDelay)
+    r => r.carrier === carrierToCheck
   );
   
   if (!rule) return 0;
   
-  // Výpočet částky refundace
-  const amount = Math.round((ticket.price * rule.percentRefund) / 100);
+  // Najít konkrétní podmínku na základě zpoždění
+  const ruleCondition = rule.rules.find(
+    condition => 
+      ticket.delayMinutes >= condition.minDelayMinutes && 
+      (!condition.maxDelayMinutes || ticket.delayMinutes <= condition.maxDelayMinutes)
+  );
   
-  // Kontrola minimální částky pro nárok na odškodnění
-  if (rule.minPrice > 0 && ticket.price < rule.minPrice) {
-    return 0;
+  if (!ruleCondition) return 0;
+  
+  // Výpočet částky refundace
+  let amount = 0;
+  if (ruleCondition.type === 'percentage') {
+    amount = Math.round((ticket.price * ruleCondition.value) / 100);
+  } else {
+    amount = ruleCondition.value;
   }
   
   return amount;

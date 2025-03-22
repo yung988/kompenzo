@@ -86,16 +86,28 @@ const initStorage = () => {
 export const calculateRefund = (ticket: Ticket): number => {
   if (ticket.delayMinutes < 60) return 0;
   
-  const rule = REFUND_RULES.find(
-    r => r.carrier === ticket.carrier && 
-         ticket.delayMinutes >= r.minDelay && 
-         (!r.maxDelay || ticket.delayMinutes <= r.maxDelay)
-  );
+  const rule = REFUND_RULES.find(r => r.carrier === ticket.carrier);
   
   if (!rule) return 0;
   
-  const amount = ticket.price * (rule.percentRefund / 100);
-  return Math.max(amount, rule.minPrice);
+  // Najít konkrétní podmínku na základě zpoždění
+  const ruleCondition = rule.rules.find(
+    condition => 
+      ticket.delayMinutes >= condition.minDelayMinutes && 
+      (!condition.maxDelayMinutes || ticket.delayMinutes <= condition.maxDelayMinutes)
+  );
+  
+  if (!ruleCondition) return 0;
+  
+  // Výpočet částky refundace
+  let amount = 0;
+  if (ruleCondition.type === 'percentage') {
+    amount = Math.round((ticket.price * ruleCondition.value) / 100);
+  } else {
+    amount = ruleCondition.value;
+  }
+  
+  return amount;
 };
 
 // API služby pro jízdenky

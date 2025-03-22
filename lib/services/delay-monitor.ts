@@ -18,7 +18,7 @@ export const delayMonitorService = {
   }> => {
     try {
       // Načtení aktivních jízdenek uživatele
-      const tickets = await ticketService.getByUser(userId);
+      const tickets = await ticketService.getTicketsForUser(userId);
       const activeTickets = tickets.filter(
         (ticket) => 
           ticket.status === 'active' && 
@@ -46,7 +46,7 @@ export const delayMonitorService = {
         
         if (delay > ticket.delayMinutes) {
           // Aktualizace jízdenky se zpožděním
-          const updatedTicket = await ticketService.update(ticket.id, {
+          const updatedTicket = await ticketService.updateTicket(ticket.id, {
             delayMinutes: delay,
             status: delay >= 60 ? 'delayed' : 'active'
           });
@@ -105,15 +105,9 @@ async function createRefundClaim(userId: string, ticket: Ticket) {
   if (refundAmount <= 0) return null;
 
   // Kontrola, zda už neexistuje žádost pro tuto jízdenku
-  const existingClaims = await claimService.getByTicket(ticket.id);
-  if (existingClaims.length > 0) return null;
+  const existingClaims = await claimService.getClaimsForUser(userId);
+  const hasExistingClaim = existingClaims.some(claim => claim.ticketId === ticket.id);
+  if (hasExistingClaim) return null;
 
-  return await claimService.create({
-    ticketId: ticket.id,
-    userId,
-    status: 'pending',
-    amount: refundAmount,
-    carrier: ticket.carrier,
-    notes: `Automaticky vytvořená žádost pro zpoždění ${ticket.delayMinutes} minut`
-  });
+  return await claimService.createClaim(ticket.id, userId);
 } 

@@ -64,7 +64,7 @@ export default function RefundsPage() {
     }
 
     loadRefunds()
-  }, [isAuthenticated, currentUser, router])
+  }, [isAuthenticated, currentUser, router, claims])
   
   const getStatusBadge = (status: RefundStatus) => {
     switch (status) {
@@ -149,7 +149,7 @@ export default function RefundsPage() {
           {claims.map((claim) => {
             const ticket = ticketMap[claim.ticketId]
             
-            return (
+        return (
               <Card key={claim.id} className="overflow-hidden">
                 <CardHeader className={`pb-2 ${
                   claim.status === 'approved' || claim.status === 'paid'
@@ -221,7 +221,7 @@ export default function RefundsPage() {
                             <p>{ticket.departureStation} - {ticket.arrivalStation}</p>
                           </div>
                           
-                          <div>
+                <div>
                             <p className="text-gray-500">Zpoždění:</p>
                             <p>{ticket.delayMinutes} min</p>
                           </div>
@@ -254,7 +254,7 @@ export default function RefundsPage() {
                             Na účet: {claim.bankAccount}
                           </p>
                         )}
-                      </div>
+                </div>
                     )}
                     
                     {claim.status === 'rejected' && (
@@ -265,10 +265,10 @@ export default function RefundsPage() {
                         <p className="text-red-700 mt-1">
                           Důvod: Nesplňuje podmínky dopravce pro odškodnění.
                         </p>
-                      </div>
+              </div>
                     )}
-                  </div>
-                </CardContent>
+              </div>
+            </CardContent>
                 
                 {claim.status === 'pending' && (
                   <CardFooter className="flex justify-between bg-gray-50 border-t">
@@ -277,9 +277,9 @@ export default function RefundsPage() {
                     </div>
                   </CardFooter>
                 )}
-              </Card>
-            )
-          })}
+          </Card>
+        )
+      })}
         </div>
       )}
     </div>

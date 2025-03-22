@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,7 @@ import { ticketService, claimService } from '@/lib/api-supabase'
 import { calculateRefund } from '@/lib/api-supabase'
 import { Ticket, RefundStatus } from '@/lib/types'
 
-export default function SubmitClaim() {
+function ClaimForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const ticketId = searchParams.get('ticketId');
@@ -346,6 +346,19 @@ export default function SubmitClaim() {
         )}
       </form>
     </div>
+  );
+}
+
+export default function SubmitClaim() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+        <p>Načítání formuláře...</p>
+      </div>
+    }>
+      <ClaimForm />
+    </Suspense>
   );
 }
 

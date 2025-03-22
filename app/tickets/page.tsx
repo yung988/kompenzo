@@ -28,7 +28,7 @@ export default function TicketsPage() {
       setIsLoading(true)
       try {
         if (currentUser?.id) {
-          const userTickets = await ticketService.getByUser(currentUser.id)
+          const userTickets = await ticketService.getTicketsForUser(currentUser.id)
           setTickets(userTickets || [])
         }
       } catch (err) {
