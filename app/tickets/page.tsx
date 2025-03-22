@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context'
+import { useBetterAuth } from '@/lib/better-auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,14 +12,14 @@ import { calculateRefund } from '@/lib/api-supabase'
 import { Ticket } from '@/lib/types'
 
 export default function TicketsPage() {
-  const { isAuthenticated, currentUser } = useAuth()
+  const { user, isLoading: authLoading } = useBetterAuth()
   const router = useRouter()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!authLoading && !user) {
       router.push('/login')
       return
     }
@@ -27,8 +27,8 @@ export default function TicketsPage() {
     const loadTickets = async () => {
       setIsLoading(true)
       try {
-        if (currentUser?.id) {
-          const userTickets = await ticketService.getTicketsForUser(currentUser.id)
+        if (user?.id) {
+          const userTickets = await ticketService.getTicketsForUser(user.id)
           setTickets(userTickets || [])
         }
       } catch (err) {
@@ -39,8 +39,10 @@ export default function TicketsPage() {
       }
     }
 
-    loadTickets()
-  }, [isAuthenticated, currentUser, router])
+    if (!authLoading && user) {
+      loadTickets()
+    }
+  }, [authLoading, user, router])
 
   const handleAddTicket = () => {
     router.push('/tickets/add')

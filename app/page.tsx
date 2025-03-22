@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context'
+import { useBetterAuth } from '@/lib/better-auth'
 import { ticketService, claimService } from '@/lib/api-supabase'
 import { Ticket, RefundClaim } from '@/lib/types'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,8 +24,8 @@ import {
 
 export default function HomePage() {
   const router = useRouter()
-  const { isAuthenticated, currentUser } = useAuth()
-  const [isLoading, setIsLoading] = useState(true)
+  const { user, isLoading } = useBetterAuth()
+  const [dataLoading, setDataLoading] = useState(true)
   const [ticketCount, setTicketCount] = useState(0)
   const [claimCount, setClaimCount] = useState(0)
   const [approvedClaimCount, setApprovedClaimCount] = useState(0)
@@ -34,15 +34,15 @@ export default function HomePage() {
 
   useEffect(() => {
     const loadData = async () => {
-      if (currentUser) {
+      if (user) {
         try {
           // Načtení jízdenek
-          const tickets = await ticketService.getTicketsForUser(currentUser.id)
+          const tickets = await ticketService.getTicketsForUser(user.id)
           setTicketCount(tickets.length)
           setRecentTickets(tickets.slice(0, 3)) // Poslední 3 jízdenky
           
           // Načtení žádostí o odškodnění
-          const claims = await claimService.getClaimsForUser(currentUser.id)
+          const claims = await claimService.getClaimsForUser(user.id)
           setClaimCount(claims.length)
           
           // Filtrujeme jen schválené žádosti pro výpočet celkové částky
@@ -54,12 +54,18 @@ export default function HomePage() {
           setTotalRefunded(totalAmount)
         } catch (error) {
           console.error("Chyba při načítání dat:", error)
+        } finally {
+          setDataLoading(false)
         }
+      } else {
+        setDataLoading(false)
       }
     }
     
-    loadData()
-  }, [currentUser])
+    if (!isLoading) {
+      loadData()
+    }
+  }, [user, isLoading])
 
   // Pomocné funkce pro formátování
   const formatDate = (dateString: string) => {
@@ -87,7 +93,7 @@ export default function HomePage() {
     )
   }
 
-  if (isLoading) {
+  if (isLoading || dataLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -95,7 +101,7 @@ export default function HomePage() {
     )
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto text-center space-y-6">

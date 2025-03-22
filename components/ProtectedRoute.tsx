@@ -2,12 +2,12 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './AuthProvider';
+import { useBetterAuth } from '@/lib/better-auth';
 import { Loader2 } from 'lucide-react';
 
 // Komponenta pro ochranu cest
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useBetterAuth();
   const router = useRouter();
 
   useEffect(() => {
