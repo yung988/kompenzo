@@ -64,7 +64,9 @@ export function BetterAuthProvider({ children }: { children: React.ReactNode }) 
         // Get the current user
         const { data, error } = await supabase.auth.getUser();
         
-        if (error) {
+        // Pokud je chyba "Chybějící session" (Auth session missing), jde o běžný stav,
+        // kdy uživatel není přihlášen - v tom případě nenastavujeme chybu
+        if (error && !error.message.includes('session missing')) {
           console.error('❌ Chyba při načítání session:', error.message);
           throw error;
         }
