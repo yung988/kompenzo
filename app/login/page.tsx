@@ -2,130 +2,113 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { authService } from '@/lib/auth-supabase';
-
-const loginSchema = z.object({
-  email: z.string().email('Zadejte platný email'),
-  password: z.string().min(6, 'Heslo musí mít alespoň 6 znaků')
-});
+import Link from 'next/link';
+import { useBetterAuth } from '@/lib/better-auth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [loginError, setLoginError] = useState('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Při změně vstupů odstraníme chyby
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const validateForm = () => {
-    try {
-      loginSchema.parse(formData);
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            newErrors[err.path[0] as string] = err.message;
-          }
-        });
-        setErrors(newErrors);
-      }
-      return false;
-    }
-  };
-
+  const { login, error, isLoading, clearError } = useBetterAuth();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [formError, setFormError] = useState('');
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError('');
+    setFormError('');
+    clearError();
     
-    if (!validateForm()) return;
+    // Validace vstupu
+    if (!email) {
+      setFormError('Zadejte e-mail');
+      return;
+    }
     
-    setIsLoading(true);
+    if (!password) {
+      setFormError('Zadejte heslo');
+      return;
+    }
     
     try {
-      const user = await authService.login(formData.email, formData.password);
-      
+      const user = await login(email, password);
       if (user) {
+        console.log('✅ Login successful, navigating to dashboard');
         router.push('/dashboard');
-      } else {
-        setLoginError('Nesprávné přihlašovací údaje');
       }
-    } catch (error) {
-      console.error('Chyba přihlášení:', error);
-      setLoginError('Došlo k chybě při přihlašování');
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      console.error('❌ Login failed:', err);
+      setFormError('Přihlášení selhalo. Zkuste to znovu.');
     }
   };
-
+  
   return (
-    <div className="container mx-auto px-4 py-8 max-w-md">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-800">Přihlášení</h1>
-      
-      {loginError && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {loginError}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="email">Email</Label>
-          <Input 
-            id="email" 
-            name="email" 
-            type="email" 
-            value={formData.email} 
-            onChange={handleChange} 
-            className={errors.email ? 'border-red-500' : ''}
-          />
-          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-        </div>
-        
-        <div>
-          <Label htmlFor="password">Heslo</Label>
-          <Input 
-            id="password" 
-            name="password" 
-            type="password" 
-            value={formData.password} 
-            onChange={handleChange}
-            className={errors.password ? 'border-red-500' : ''}
-          />
-          {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-        </div>
-        
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Přihlašování...' : 'Přihlásit se'}
-        </Button>
-      </form>
-      
-      <div className="mt-4 text-center">
-        <p>Nemáte účet? <Link href="/register" className="text-blue-600 hover:text-blue-800">Registrujte se</Link></p>
-      </div>
+    <div className="container max-w-md py-8 mx-auto">
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-center text-2xl">Přihlášení</CardTitle>
+          <CardDescription className="text-center">
+            Vítejte zpět! Přihlaste se ke svému účtu.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {(formError || error) && (
+              <div className="p-3 rounded-md bg-red-50 text-red-600">
+                {formError || error}
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="vas@email.cz"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Label htmlFor="password">Heslo</Label>
+                <Link 
+                  href="/forgot-password" 
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Zapomenuté heslo?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Přihlašuji...' : 'Přihlásit se'}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="justify-center flex-col space-y-4">
+          <div className="text-sm text-center">
+            Ještě nemáte účet?{' '}
+            <Link href="/register" className="text-blue-600 hover:underline">
+              Zaregistrujte se
+            </Link>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 } 

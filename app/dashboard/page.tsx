@@ -1,68 +1,91 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useBetterAuth } from '@/lib/better-auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TicketPreview } from '@/components/ticket-preview'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
-interface Claim {
-  id: number
-  name: string
-  transportType: string
-  routeNumber: string
-  departureDate: string
-  delayMinutes: number
-  status: string
-  ticketScan: string
-}
+export default function DashboardPage() {
+  const router = useRouter()
+  const { user, isLoading } = useBetterAuth()
 
-export default function Dashboard() {
-  const [claims, setClaims] = useState<Claim[]>([])
-
+  // Přesměrování, pokud není uživatel přihlášen
   useEffect(() => {
-    // In a real application, you would fetch this data from your backend
-    const mockClaims: Claim[] = [
-      {
-        id: 1,
-        name: 'Jan Novák',
-        transportType: 'train',
-        routeNumber: 'R123',
-        departureDate: '2023-06-01',
-        delayMinutes: 75,
-        status: 'Zpracovává se',
-        ticketScan: '/placeholder.svg?height=200&width=400',
-      },
-      {
-        id: 2,
-        name: 'Eva Svobodová',
-        transportType: 'bus',
-        routeNumber: 'B456',
-        departureDate: '2023-06-02',
-        delayMinutes: 90,
-        status: 'Schváleno',
-        ticketScan: '/placeholder.svg?height=200&width=400',
-      },
-    ]
-    setClaims(mockClaims)
-  }, [])
+    if (!isLoading && !user) {
+      router.push('/login')
+    }
+  }, [isLoading, user, router])
+
+  if (isLoading) {
+    return (
+      <div className="container py-8 mx-auto">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded-md w-1/3 mx-auto"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="h-32 bg-gray-200 rounded-md"></div>
+            <div className="h-32 bg-gray-200 rounded-md"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Moje žádosti o refundaci</h1>
-      <div className="grid gap-4">
-        {claims.map((claim) => (
-          <Card key={claim.id}>
-            <CardHeader>
-              <CardTitle>{claim.transportType === 'train' ? 'Vlak' : 'Autobus'} {claim.routeNumber}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Datum odjezdu: {claim.departureDate}</p>
-              <p>Zpoždění: {claim.delayMinutes} minut</p>
-              <p>Stav: {claim.status}</p>
-              <TicketPreview imageUrl={claim.ticketScan} />
-            </CardContent>
-          </Card>
-        ))}
+    <div className="container py-8 mx-auto">
+      <h1 className="text-3xl font-bold text-center mb-8">
+        Vítejte, {user?.name || 'uživateli'}!
+      </h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Vaše jízdenky</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">Nahrajte své jízdenky pro případné refundace.</p>
+            <Button asChild className="w-full">
+              <Link href="/tickets">Spravovat jízdenky</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Žádosti o refundace</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">Sledujte stav vašich žádostí o odškodnění.</p>
+            <Button asChild className="w-full">
+              <Link href="/refunds">Moje refundace</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Skenovat jízdenku</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">Rychle naskenujte jízdenku pomocí fotoaparátu.</p>
+            <Button asChild className="w-full">
+              <Link href="/scan-ticket">Naskenovat jízdenku</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Váš profil</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">Upravte své osobní údaje a nastavení účtu.</p>
+            <Button asChild className="w-full">
+              <Link href="/profile">Upravit profil</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

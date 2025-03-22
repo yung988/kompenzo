@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { AuthProvider } from '@/lib/auth-context';
+import { BetterAuthProvider } from '@/lib/better-auth';
+import { UserMenu } from '@/components/UserMenu';
 import './globals.css';
 import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Home, Ticket, Camera, RefreshCw } from 'lucide-react';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -21,17 +21,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="cs">
       <body className={`${inter.className} bg-gradient-to-br from-blue-100 to-purple-100 min-h-screen`}>
-        <AuthProvider>
+        <BetterAuthProvider>
           <div className="flex flex-col min-h-screen">
             <header className="glass-effect p-4 fixed top-0 left-0 right-0 z-10">
               <div className="container mx-auto flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-blue-800">Kompenzo</h1>
-                <Link href="/profile">
-                  <Avatar>
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Profile" />
-                    <AvatarFallback>JN</AvatarFallback>
-                  </Avatar>
-                </Link>
+                <UserMenu />
               </div>
             </header>
             <main className="flex-grow pt-20 pb-20">{children}</main>
@@ -58,7 +53,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
               </nav>
             </div>
           </div>
-        </AuthProvider>
+        </BetterAuthProvider>
       </body>
     </html>
   );

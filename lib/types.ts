@@ -38,10 +38,39 @@ export interface RefundClaim {
   ticket?: Ticket; // Reference na přidruženou jízdenku
 }
 
+// Uživatelský typ pro naši aplikaci
 export interface User {
   id: string;
   email: string;
   name: string;
+  phone?: string;
+  address?: string;
+  bankAccount?: string;
+}
+
+// Typ pro chyby autentizace
+export interface AuthError {
+  message: string;
+  status?: number;
+}
+
+// Typ pro přihlašovací údaje
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+// Typ pro registrační údaje
+export interface RegisterData extends LoginCredentials {
+  name: string;
+  phone?: string;
+  address?: string;
+  bankAccount?: string;
+}
+
+// Typ pro aktualizaci profilu
+export interface ProfileUpdateData {
+  name?: string;
   phone?: string;
   address?: string;
   bankAccount?: string;
