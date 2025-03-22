@@ -61,15 +61,33 @@ export const cdApiService = {
    * Vyhledá spojení mezi stanicemi
    */
   searchConnections: async (
-    fromLocationId: string, 
-    toLocationId: string, 
+    fromLocation: string, 
+    toLocation: string, 
     departureDate: string
   ): Promise<CdConnection[]> => {
     try {
       const url = new URL('https://ticket-api.cd.cz/v1/connections');
-      url.searchParams.append('fromLocationId', fromLocationId);
-      url.searchParams.append('toLocationId', toLocationId);
+      
+      // Zjistíme, zda parametry jsou ID stanic nebo názvy
+      const isFromLocationId = fromLocation.length < 10 && /^\d+$/.test(fromLocation);
+      const isToLocationId = toLocation.length < 10 && /^\d+$/.test(toLocation);
+      
+      // Nastavíme správné parametry podle typu vstupu
+      if (isFromLocationId) {
+        url.searchParams.append('fromLocationId', fromLocation);
+      } else {
+        url.searchParams.append('fromLocationName', fromLocation);
+      }
+      
+      if (isToLocationId) {
+        url.searchParams.append('toLocationId', toLocation);
+      } else {
+        url.searchParams.append('toLocationName', toLocation);
+      }
+      
       url.searchParams.append('departureDate', departureDate);
+      
+      console.log("Volám API:", url.toString());
       
       const response = await fetch(url.toString());
       

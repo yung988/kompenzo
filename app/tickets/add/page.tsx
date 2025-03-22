@@ -142,7 +142,7 @@ export default function AddTicketPage() {
   }
 
   const searchLocations = async (type: 'from' | 'to', query: string) => {
-    if (query.length < 2) return
+    if (query.length < 1) return
     
     setIsSearchingLocations(true)
     try {
@@ -160,20 +160,33 @@ export default function AddTicketPage() {
   }
 
   const searchConnections = async () => {
-    if (!selectedFromLocation || !selectedToLocation) return
+    if (!selectedFromLocation && !searchFromQuery) return;
+    if (!selectedToLocation && !searchToQuery) return;
     
-    setIsSearchingConnections(true)
+    setIsSearchingConnections(true);
     try {
+      let fromId = selectedFromLocation?.id;
+      let toId = selectedToLocation?.id;
+      
+      // Pokud nemáme ID, použijeme názvy stanic
       const connections = await cdApiService.searchConnections(
-        selectedFromLocation.id,
-        selectedToLocation.id,
+        fromId || searchFromQuery,
+        toId || searchToQuery,
         searchDate
-      )
-      setConnections(connections)
+      );
+      
+      // Pokud jsme dostali spojení, zobrazíme je
+      if (connections && connections.length > 0) {
+        setConnections(connections);
+      } else {
+        console.log("Žádná spojení nebyla nalezena");
+        setConnections([]);
+      }
     } catch (error) {
-      console.error('Chyba při vyhledávání spojení:', error)
+      console.error('Chyba při vyhledávání spojení:', error);
+      setConnections([]);
     } finally {
-      setIsSearchingConnections(false)
+      setIsSearchingConnections(false);
     }
   }
 
@@ -596,6 +609,7 @@ export default function AddTicketPage() {
                             value={searchFromQuery}
                             onChange={(e) => {
                               setSearchFromQuery(e.target.value)
+                              setSelectedFromLocation(null)
                               searchLocations('from', e.target.value)
                             }}
                           />
@@ -605,21 +619,23 @@ export default function AddTicketPage() {
                             </div>
                           )}
                         </div>
-                        {fromLocations.length > 0 && !selectedFromLocation && (
-                          <div className="absolute z-10 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto w-full">
-                            {fromLocations.map((location) => (
-                              <div
-                                key={location.id}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                                onClick={() => {
-                                  setSelectedFromLocation(location)
-                                  setSearchFromQuery(location.name)
-                                  setFromLocations([])
-                                }}
-                              >
-                                {location.name}
-                              </div>
-                            ))}
+                        {fromLocations.length > 0 && (
+                          <div className="relative">
+                            <div className="absolute z-10 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto w-full">
+                              {fromLocations.map((location) => (
+                                <div
+                                  key={location.id}
+                                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                  onClick={() => {
+                                    setSelectedFromLocation(location)
+                                    setSearchFromQuery(location.name)
+                                    setFromLocations([])
+                                  }}
+                                >
+                                  {location.name}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -633,6 +649,7 @@ export default function AddTicketPage() {
                             value={searchToQuery}
                             onChange={(e) => {
                               setSearchToQuery(e.target.value)
+                              setSelectedToLocation(null)
                               searchLocations('to', e.target.value)
                             }}
                           />
@@ -642,21 +659,23 @@ export default function AddTicketPage() {
                             </div>
                           )}
                         </div>
-                        {toLocations.length > 0 && !selectedToLocation && (
-                          <div className="absolute z-10 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto w-full">
-                            {toLocations.map((location) => (
-                              <div
-                                key={location.id}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                                onClick={() => {
-                                  setSelectedToLocation(location)
-                                  setSearchToQuery(location.name)
-                                  setToLocations([])
-                                }}
-                              >
-                                {location.name}
-                              </div>
-                            ))}
+                        {toLocations.length > 0 && (
+                          <div className="relative">
+                            <div className="absolute z-10 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto w-full">
+                              {toLocations.map((location) => (
+                                <div
+                                  key={location.id}
+                                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                  onClick={() => {
+                                    setSelectedToLocation(location)
+                                    setSearchToQuery(location.name)
+                                    setToLocations([])
+                                  }}
+                                >
+                                  {location.name}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
